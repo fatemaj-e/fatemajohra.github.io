@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "My Website",
+    "section": "",
+    "text": "I am a PhD Candidate in Economics\nThis website is my space to share: - Research projects - Blog posts - Resources I find useful"
+  },
+  {
+    "objectID": "index.html#stay-tuned-for-updates",
+    "href": "index.html#stay-tuned-for-updates",
+    "title": "My Website",
+    "section": "",
+    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About me",
+    "section": "",
+    "text": "About Me\nHi, I’m Fatema Johra.\nI’m interested in Economics & Finance.\nThis site is where I share my work, projects, and ideas."
+  }
+]
