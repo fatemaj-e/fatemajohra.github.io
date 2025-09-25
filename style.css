@@ -1,0 +1,148 @@
+body{
+    color: black;
+    background-color: rgba(191, 224, 240, 0.623);
+}
+
+.mainScreen{
+    display: flex;
+    flex-direction: row;
+    background-image: url(background2.jpg);
+    border-radius: 20px;
+    padding: 20px 20px 20px 20px;
+}
+
+.left-container{
+    width: 200vh;
+    max-height: 1060px;
+    background: rgba(152, 202, 236, 0); /* Semi-transparent black background */
+    backdrop-filter: blur(12px);  /* Apply blur effect to the background */
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.left-container img{
+    width: 60vh;
+    height: 70vh;
+    padding: 20px 20px 20px 20px;
+    border-radius: 35px;
+}
+
+.left-container img:hover{
+    scale: 1.1;
+}
+
+.right-container{
+    display: flex;
+    flex-direction: column;
+    max-width: 940px;
+    background: rgba(152, 202, 236, 0); /* Semi-transparent black background */
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 20px 20px 20px 20px;
+    color: white;
+}
+
+.right-container img{
+    max-width: 940px;
+    height: 50vh;
+    border-radius: 25px;
+}
+
+.right-container img:hover{
+    scale: 1.05;
+}
+
+.P-Info{
+    color: white;
+}
+
+.P-Info h1{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 4em;
+}
+
+.P-Info h2{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2em;
+}
+
+.P-Info li{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2em;
+}
+
+.P-Info li:hover{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2.2em;
+}
+
+.HomeWork{
+    display: flex;
+    flex-direction: column;
+    background: rgba(152, 202, 236, 0); /* Semi-transparent black background */
+    backdrop-filter: blur(12px);
+    align-items: center;
+    justify-content: center;
+    border-radius: 25px;
+    text-align: center;
+    width: 150vh;
+    padding: 20px 20px 20px 20px;
+}
+
+.HomeWork h1{
+    text-align: center;
+    color: white;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 5em;
+}
+
+.HomeWork li{
+    text-align: center;
+    color: black;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2em;
+}
+
+.HomeWork li::marker{
+    color: aqua;
+}
+
+.HomeWork li:hover{
+    scale: 1.05 ;
+}
+
+
+
+.HomeWork a{
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2em;
+}
+
+.HomeWork-Container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: auto;
+    height: auto;
+    padding: 20px 20px 20px 20px;
+    background-image: url(hw.jpg);
+    border-radius: 30px;
+}
+
+.Intro h1{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 2em;
+}
+
+.Intro p{
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 1.1em;
+}
+
