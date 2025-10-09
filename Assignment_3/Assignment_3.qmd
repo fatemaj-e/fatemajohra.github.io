@@ -1,0 +1,250 @@
+---
+title: "EPPS 6356: Assignment 3"
+author: "Fatema Johra"
+date: "`r Sys.Date()`"
+html-math-method:
+  method: mathjax
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+#1 Choose one of the six charts and explain how it is configured by adding documentation to the codes.
+```{r scatter, warning=FALSE, message=FALSE, fig.keep='plot'}
+### Paul Murrell's R examples (selected)
+## I choose the 1st plot (Scatter plot)
+# Data setup: two response/dependent variables (y1, y2) measured at different x points/independent varaibles
+x <- c(0.5, 2, 4, 8, 12, 16)
+y1 <- c(1, 1.3, 1.9, 3.4, 3.9, 4.8)
+y2 <- c(4, .8, .5, .45, .4, .3)
+# Setting graphical parameters:
+# las=1 (horizontal axis labels), mar (margins), cex (text size)
+par(las=1, mar=c(4, 4, 2, 4), cex=.7) 
+## Initialize an empty plotting window
+plot.new()
+plot.window(range(x), c(0, 6))
+# Add lines connecting points for both datasets
+lines(x, y1)
+lines(x, y2)
+# Add data points: pch=16 (solid circles), cex=2 (twice normal size)
+points(x, y1, pch=16, cex=2) # Try different cex value?  
+points(x, y2, pch=21, bg="white", cex=2)  # # pch=21 = open circles, white fill
+# Adjust axis colors to gray
+par(col="gray50", fg="gray50", col.axis="gray50")
+# Add custom axes on bottom (1), left (2), and right (4)
+axis(1, at=seq(0, 16, 4)) # What is the first number standing for?
+axis(2, at=seq(0, 6, 2))
+axis(4, at=seq(0, 6, 2))
+# Add box with "u" shape 
+box(bty="u")
+# Add axis labels in the margins
+mtext("Travel Time (s)", side=1, line=2, cex=0.8)
+mtext("Responses per Travel", side=2, line=2, las=0, cex=0.8)
+mtext("Responses per Second", side=4, line=2, las=0, cex=0.8)
+# Add text annotation inside the plot
+text(4, 5, "Bird 131")
+par(mar=c(5.1, 4.1, 4.1, 2.1), col="black", fg="black", col.axis="black")
+```
+#2(a) Compare the Regression Models in anscombe01
+
+All four regression models in Anscombe’s Quartet (lm1, lm2, lm3, lm4) have virtually identical summary statistics, such as same means, variances, regression coefficients, and R² (around 0.67). However, when plotted, each dataset shows a very different pattern:
+
+Set 1: A normal linear relationship: the regression line fits well.
+
+Set 2: A curved (nonlinear) relationship: violates linear assumptions.
+
+Set 3: The presence of one outlier strongly influences the fit.
+
+Set 4: A single leverage point determines the regression slope entirely.
+
+From this example, its evident that only quantitative analysis or numerical summaries alone can be really misleading, the researcher can end up in wrong conclusion or findings. Visual inspection is essential to detect nonlinearity in the data and account for outliers is very important to understand the underlying pattern or robust analysis. So, it is recommended to combine the quantitative or statistucal analysis with visual inspection not only for analyzing the data pattern but also for choosing the appropriate model.
+
+#2(b) Compare Different Ways to Create the Plots
+
+The simple version plots each dataset individually using:
+plot(anscombe$x1, anscombe$y1)
+abline(coefficients(lm1))
+
+This approach produces plain black scatterplots with default settings.
+But, we can improves clarity and comparison in many ways such as:
+
+-Using colors like (col="red", bg="orange") and custom symbols (pch=21).
+
+-Adding blue/other regression lines (col="blue").
+
+-Arranging all four plots in a 2×2 or 3x2 grid i.e par(mfrow=c(2,2)).
+
+-Keeping axes consistent (xlim, ylim) for fair comparison.
+
+As such, visual enhancements (color, layout, point shape) make patterns and outliers more evident, reinforcing the principle that data visualization reveals some insightful truths that statistics can hide.
+```{r, warning=FALSE, message=FALSE, fig.keep='plot'}
+## Data Visualization
+## Objective: Identify data or model problems using visualization
+## Anscombe (1973) Quartlet
+data(anscombe)  # Load Anscombe's data
+View(anscombe) # View the data
+summary(anscombe)
+## Simple version
+plot(anscombe$x1,anscombe$y1)
+summary(anscombe)
+# Create four model objects
+lm1 <- lm(y1 ~ x1, data=anscombe)
+summary(lm1)
+lm2 <- lm(y2 ~ x2, data=anscombe)
+summary(lm2)
+lm3 <- lm(y3 ~ x3, data=anscombe)
+summary(lm3)
+lm4 <- lm(y4 ~ x4, data=anscombe)
+summary(lm4)
+# Use serif font and adjust layout
+par(mfrow = c(2, 2), family = "serif", mar = c(4, 4, 2, 1), oma = c(0, 0, 2, 0))
+# 1. Dataset 1
+plot(anscombe$x1, anscombe$y1,
+     main = "Dataset 1",
+     pch = 21, bg = "lightblue", col = "navy",
+     xlab = "x1", ylab = "y1",
+     xlim = c(3, 19), ylim = c(3, 13), cex = 1.4)
+abline(lm(y1 ~ x1, data = anscombe), col = "darkred", lwd = 2, lty = 2)
+grid(col = "gray80", lty = "dotted")
+
+# 2. Dataset 2
+plot(anscombe$x2, anscombe$y2,
+     main = "Dataset 2",
+     pch = 22, bg = "mistyrose", col = "firebrick",
+     xlab = "x2", ylab = "y2",
+     xlim = c(3, 19), ylim = c(3, 13), cex = 1.4)
+abline(lm(y2 ~ x2, data = anscombe), col = "darkred", lwd = 2, lty = 2)
+grid(col = "gray80", lty = "dotted")
+
+# 3. Dataset 3
+plot(anscombe$x3, anscombe$y3,
+     main = "Dataset 3",
+     pch = 23, bg = "lightgreen", col = "darkgreen",
+     xlab = "x3", ylab = "y3",
+     xlim = c(3, 19), ylim = c(3, 13), cex = 1.4)
+abline(lm(y3 ~ x3, data = anscombe), col = "darkred", lwd = 2, lty = 2)
+grid(col = "gray80", lty = "dotted")
+
+# 4. Dataset 4
+plot(anscombe$x4, anscombe$y4,
+     main = "Dataset 4",
+     pch = 24, bg = "thistle", col = "purple4",
+     xlab = "x4", ylab = "y4",
+     xlim = c(3, 19), ylim = c(3, 13), cex = 1.4)
+abline(lm(y4 ~ x4, data = anscombe), col = "darkred", lwd = 2, lty = 2)
+grid(col = "gray80", lty = "dotted")
+
+# Add an overall title
+mtext("Anscombe's Quartet — Simple Models, Fancy Visualization",
+      outer = TRUE, cex = 1.3, font = 2)
+
+```
+#3 Can you finetune the charts without using other packages
+Already done in question 2(b) 
+#4 How about with ggplot2? (use tidyverse package)
+```{r plt, warning=FALSE, message=FALSE, fig.keep='all'}
+# Load the tidyverse (includes ggplot2)
+library(tidyverse)
+# Convert Anscombe data into long format for ggplot
+anscombe_long <- anscombe %>%
+  pivot_longer(cols = everything(),
+               names_to = c(".value", "set"),
+               names_pattern = "(.)(.)")
+
+# Preview
+head(anscombe_long)
+
+# Plot all four datasets in a grid
+ggplot(anscombe_long, aes(x = x, y = y)) +
+  geom_point(aes(color = set, shape = set), size = 3, fill = "white", stroke = 1) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+  facet_wrap(~ set, ncol = 2) +
+  labs(
+    title = "Anscombe's Quartet — ggplot2 Version",
+    x = "X values",
+    y = "Y values",
+    caption = "Fine-tuned: serif font, non-default colors, custom shapes"
+  ) +
+  theme_minimal(base_family = "serif") +  # (a) Serif font
+  theme(
+    plot.title = element_text(size = 16, face = "bold", color = "navy"),
+    strip.background = element_rect(fill = "gray90", color = NA),
+    strip.text = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_color_manual(values = c("firebrick", "steelblue", "darkgreen", "purple")) + # (b)
+  scale_shape_manual(values = c(21, 22, 23, 24))  # (c)
+
+```
+
+# 5. Pre-hackathon by team: Already sent to TA
+
+```{r covid, warning=FALSE, message=FALSE}
+owidall <- read.csv("https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-data.csv?raw=true")
+
+# Remove OWID aggregates (continent/world totals)
+owidall <- owidall[!grepl("^OWID", owidall$iso_code), ]
+
+# Keep Europe only
+owideu <- subset(owidall, continent == "Europe")
+
+# Convert date
+owideu$date <- as.Date(owideu$date)
+
+# Keep all values, including zeros (do NOT remove missing yet)
+owideu <- subset(owideu, !is.na(new_deaths))
+
+# Limit to the date range shown in your professor's figure
+owideu <- subset(owideu, date >= as.Date("2020-01-01") & date <= as.Date("2023-08-31"))
+plot(
+  NA, NA,
+  xlim = range(as.Date("2020-01-01"), as.Date("2023-09-01")),
+  ylim = c(0, 6500),
+  xlab = "",
+  ylab = "",
+  xaxt = "n",
+  yaxt = "n",
+  bty = "n"
+)
+
+# Plot ALL data points, including zeros — this creates the faint line
+points(
+  owideu$date,
+  owideu$new_deaths,
+  pch = 16,
+  cex = 0.5,
+  col = "#e72b8a"
+)
+months_for_labels <- seq(as.Date("2020-01-01"), as.Date("2023-08-01"), by = "2 months")
+
+axis(
+  1,
+  at = as.numeric(months_for_labels),
+  labels = format(months_for_labels, "%Y-%m"),
+  cex.axis = 0.8,
+  las = 2,
+  tick = FALSE,
+  family = "serif"
+)
+
+axis(
+  2,
+  at = seq(0, 6000, 1000),
+  labels = seq(0, 6000, 1000),
+  cex.axis = 1,
+  family = "serif"
+)
+
+box(bty = "o")
+
+mtext("Date", side = 1, line = 3.5, cex = 1, family = "serif")
+mtext("COVID Deaths in Europe (Daily)", side = 2, line = 3, cex = 1, family = "serif")
+text(as.numeric(as.Date("2020-04-01")), 4800, "Spain", cex = 0.8, family = "serif")
+text(as.numeric(as.Date("2021-02-01")), 6200, "Germany", cex = 0.8, family = "serif")
+text(as.numeric(as.Date("2021-11-15")), 3800, "Ukraine", cex = 0.8, family = "serif")
+text(as.numeric(as.Date("2023-02-01")), 1100, "Germany", cex = 0.8, family = "serif")
+text(as.numeric(as.Date("2023-07-01")), 300, "Italy", cex = 0.8, family = "serif")
+
+```
+
+
