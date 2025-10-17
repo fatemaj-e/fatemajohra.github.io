@@ -1,0 +1,227 @@
+---
+title: "EPPS 6356: Assignment 4"
+author: "Fatema Johra"
+date: "`r Sys.Date()`"
+html-math-method:
+  method: mathjax
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+## Chart 1
+```{r ch1, echo=TRUE,cache=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+df <- ggplot2::diamonds
+
+sum1 <-
+  df |>
+  group_by(cut) |>
+  summarise(med_price = median(price), n = n(), .groups = "drop") |>
+  mutate(width = n / sum(n)) |>
+  arrange(cut) |>
+  mutate(
+    xmax = cumsum(width),
+    xmin = lag(xmax, default = 0),
+    xmid = (xmin + xmax) / 2
+  )
+
+ggplot(sum1) +
+  geom_rect(
+    aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = med_price),
+    fill = "#8CB7D0", color = "#3A6F86", linewidth = 0.6  # <- border
+  ) +
+  scale_x_continuous(breaks = sum1$xmid, labels = sum1$cut, expand = c(0, 0)) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = "Variable-Width Column Chart — Cut",
+       subtitle = "Width = share of diamonds; Height = median price (USD)",
+       x = "Cut", y = "Median price") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.x = element_blank())
+
+
+
+```
+## Chart 3
+```{r ch3, echo=TRUE}
+# Chart 3 — Many items × Few categories
+# Items: color–clarity | Facets: cut | Variable: median price (USD)
+
+pkgs <- c("ggplot2","dplyr","tidytext","scales")
+to_install <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]
+if(length(to_install)) install.packages(to_install)
+library(ggplot2); library(dplyr); library(tidytext); library(scales)
+
+df <- ggplot2::diamonds
+
+# TUNABLES for readability
+topN  <- 5     # keep top N items per cut by median price
+min_n <- 100   # drop tiny groups to avoid noisy medians
+
+summ <- df %>%
+  group_by(cut, color, clarity) %>%
+  summarise(med_price = median(price), n = n(), .groups = "drop") %>%
+  filter(n >= min_n) %>%                                  # remove tiny groups
+  group_by(cut) %>% slice_max(med_price, n = topN, with_ties = FALSE) %>%
+  ungroup() %>%
+  mutate(item   = paste(color, clarity, sep = "-"),
+         item_f = tidytext::reorder_within(item, med_price, cut))
+
+ggplot(summ, aes(x = med_price, y = item_f, fill = med_price)) +
+  geom_col() +
+  facet_wrap(~ cut, ncol = 1, scales = "free_y") +
+  tidytext::scale_y_reordered() +
+  scale_x_continuous(labels = dollar) +
+  scale_fill_viridis_c(option = "mako", end = 0.9, name = "Median price") +
+  labs(
+    title = paste0("Top ", topN, " Color–Clarity Items by Median Price"),
+    x = "Median price (USD)",
+    y = "Color–Clarity"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "right",
+    panel.grid.major.y = element_blank()
+  )
+
+```
+## Chart 4:
+```{r ch4, echo=TRUE}
+# 3D-ish overlapped columns (same x): median PRICE, D–F vs G–J, by CUT
+pkgs <- c("ggplot2","dplyr","tidyr","scales")
+to_install <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]
+if(length(to_install)) install.packages(to_install)
+library(ggplot2); library(dplyr); library(tidyr); library(scales)
+
+# Data + groups
+df <- ggplot2::diamonds %>%
+  mutate(color_group = ifelse(color %in% c("D","E","F"), "D–F", "G–J"))
+
+# Summaries: median PRICE (one variable per item within each cut)
+sum4 <- df %>%
+  group_by(cut, color_group) %>%
+  summarise(med_price = median(price), .groups = "drop") %>%
+  pivot_wider(names_from = color_group, values_from = med_price) %>%
+  mutate(
+    x = as.numeric(cut),
+    back_val  = pmax(`D–F`, `G–J`, na.rm = TRUE),     # draw back (bigger) first
+    front_val = pmin(`D–F`, `G–J`, na.rm = TRUE)
+  )
+
+# Helper to draw a 3D-ish bar (front, side, top)
+box3d <- function(x, h, w, dx, dy, cols, id_tag){
+  front <- data.frame(x=c(x-w/2,x-w/2,x+w/2,x+w/2), y=c(0,h,h,0),
+                      fill=cols[1], id=paste0(id_tag,"-front"))
+  side  <- data.frame(x=c(x+w/2,x+w/2,x+w/2+dx,x+w/2+dx), y=c(0,h,h+dy,dy),
+                      fill=cols[2], id=paste0(id_tag,"-side"))
+  top   <- data.frame(x=c(x-w/2,x+w/2,x+w/2+dx,x-w/2+dx), y=c(h,h,h+dy,h+dy),
+                      fill=cols[3], id=paste0(id_tag,"-top"))
+  rbind(front, side, top)
+}
+
+# Visual tunables
+w_back <- 0.82   # width of back bar
+w_front <- 0.55  # width of front bar
+dx <- 0.12       # horizontal slant
+dy <- max(sum4$back_val, na.rm = TRUE) * 0.06  # vertical slant
+
+# Soothing but visible palette: back = soft grey, front = teal
+cols_back  <- c("#C9CCD6", "#ABB0C0", "#E4E7EF")  # front/side/top
+cols_front <- c("#8CB7D0", "#8CB7D0", "#8CB7D0")
+
+# Build polygons
+polys_back  <- do.call(rbind, lapply(seq_len(nrow(sum4)), function(i)
+  box3d(sum4$x[i], sum4$back_val[i],  w_back,  dx, dy, cols_back,  paste0(sum4$cut[i],"-back"))))
+polys_front <- do.call(rbind, lapply(seq_len(nrow(sum4)), function(i)
+  box3d(sum4$x[i], sum4$front_val[i], w_front, dx, dy, cols_front, paste0(sum4$cut[i],"-front"))))
+
+# Plot: back first, then front (so front actually sits in front)
+ggplot() +
+  geom_polygon(data = polys_back,
+               aes(x = x, y = y, group = id, fill = fill),
+               color = NA, show.legend = FALSE) +
+  geom_polygon(data = polys_front,
+               aes(x = x, y = y, group = id, fill = fill),
+               color = NA, show.legend = FALSE) +
+  scale_fill_identity() +
+  scale_x_continuous(breaks = seq_along(levels(df$cut)),
+                     labels = levels(df$cut),
+                     expand = expansion(mult = c(0.06, 0.08))) +
+  scale_y_continuous(labels = dollar) +
+  labs(
+    title = "Median Price by Cut — 3D-style Front/Back Overlap",
+    subtitle = "Two items at each x: D–F (one) vs G–J (the other). Taller bar drawn in back.",
+    x = "Cut", y = "Median price (USD)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.x = element_blank())
+
+
+```
+## Chart 2
+```{r ch2, echo=TRUE}
+
+# Chart 2 — Table (Color × Clarity) with embedded *vertical* bars + price labels (no subtitle)
+
+# pkgs
+for (p in c("dplyr","tidyr","gt","scales")) if (!requireNamespace(p, quietly = TRUE)) install.packages(p)
+library(dplyr); library(tidyr); library(gt); library(scales)
+
+min_n  <- 50
+barcol <- "#8CB7D0"    # soothing, visible blue
+cell_h <- 56           # cell drawing height (px)
+bar_w  <- 12           # bar width (px)
+bar_h  <- 48           # max bar height (px) inside the cell
+
+# summarize -> wide table (rows=color, cols=clarity)
+sum2 <-
+  ggplot2::diamonds |>
+  group_by(color, clarity) |>
+  summarise(median_price = median(price), n = n(), .groups = "drop") |>
+  mutate(val = ifelse(n >= min_n, median_price, NA_real_)) |>
+  select(color, clarity, val) |>
+  pivot_wider(names_from = clarity, values_from = val) |>
+  arrange(color)
+
+clar_cols <- setdiff(names(sum2), "color")
+maxv <- max(unlist(sum2[, clar_cols, drop = FALSE]), na.rm = TRUE)
+
+# vertical bar + price label
+cell_html <- function(v) {
+  if (is.na(v)) gt::html("&mdash;") else {
+    h <- round(bar_h * v / maxv)
+    gt::html(sprintf(
+      "<div style='display:flex;align-items:flex-end;justify-content:center;height:%dpx;gap:8px;'>
+         <div title='%s' style='width:%dpx;height:%dpx;background:%s;border-radius:4px;'></div>
+         <div style='font-variant-numeric: tabular-nums;'>%s</div>
+       </div>",
+      cell_h, dollar(v), bar_w, h, barcol, dollar(v)
+    ))
+  }
+}
+
+gt_tbl <-
+  sum2 |>
+  gt() |>
+  tab_header(
+    title = md("**Median Price by Color × Clarity**")
+  ) |>
+  text_transform(
+    locations = cells_body(columns = all_of(clar_cols)),
+    fn = function(col_vals) {
+      vals <- suppressWarnings(as.numeric(col_vals))
+      lapply(vals, cell_html)
+    }
+  ) |>
+  cols_align("center", columns = all_of(clar_cols)) |>
+  cols_align("left", columns = "color") |>
+  tab_options(table.font.size = px(13), data_row.padding = px(4))
+
+gt_tbl
+
+
+```
+
