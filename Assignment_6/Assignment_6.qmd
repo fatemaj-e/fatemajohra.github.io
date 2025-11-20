@@ -1,0 +1,641 @@
+---
+title: "EPPS 6356: Assignment 6"
+author: "Fatema Johra"
+date: "`r Sys.Date()`"
+html-math-method:
+  method: mathjax
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+## sample Shiny program #1
+```{r, warning=FALSE, message=FALSE}
+library(foreign)
+library(shiny)
+library(readr)
+hkid <- read_csv("https://raw.githubusercontent.com/datageneration/datavisualization/master/data/hkid.csv")
+# Identify numeric columns
+numeric_cols <- names(hkid)[sapply(hkid, is.numeric)]
+
+# Clean numeric columns: remove NAs and non-finite values
+hkid[numeric_cols] <- lapply(hkid[numeric_cols], function(x) {
+  x <- as.numeric(x)
+  x[!is.finite(x)] <- NA
+  x
+})
+
+# Define UI
+ui <- fluidPage(
+  
+  # Custom CSS for font and colors
+  tags$style(HTML("
+    body, label, .shiny-input-container, h1, h2, h3, h4, h5, h6 {
+      font-family: 'Times New Roman', serif;  
+      color: black;
+    }
+    body {
+      background-color: white;
+    }
+  ")),
+  
+  titlePanel("Hong Kong Identity Histogram"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      # Dropdown to select numeric column
+      selectInput("col", "Choose a column:", choices = numeric_cols),
+      
+      # Slider for number of bins
+      sliderInput("bins", "Number of bins:", min = 1, max = 20, value = 10)
+    ),
+    
+    mainPanel(
+      plotOutput("histPlot")
+    )
+  )
+)
+
+# Define server
+server <- function(input, output) {
+  output$histPlot <- renderPlot({
+    
+    # Get selected column
+    x <- hkid[[input$col]]
+    x <- x[!is.na(x)]
+    
+    # Only plot if there are finite numbers
+    if(length(x) > 0) {
+      bins <- seq(min(x), max(x), length.out = input$bins + 1)
+      hist(x, breaks = bins, col = "steelblue", border = "black",
+           main = paste("Histogram of", input$col),
+           xlab = input$col)
+    } else {
+      plot.new()
+      text(0.5, 0.5, "No data available for this column", cex = 1.5)
+    }
+    
+  })
+}
+
+```
+
+## sample Shiny program #2
+```{r 2, warning=FALSE, message=FALSE}
+library(readr)
+library(shiny)
+
+# Be sure to set up directory for Shiny to read local data
+
+# hkid <- read_csv("hkid.csv")
+# CO2 <- read_csv("CO2.csv")
+# hpi2016 <- read_csv("hpi2016.csv")
+hkid <- read_csv("https://raw.githubusercontent.com/datageneration/datavisualization/master/data/hkid.csv")
+CO2 <- read_csv("https://raw.githubusercontent.com/datageneration/datavisualization/master/data/CO2.csv")
+hpi2016 <- read_csv("https://raw.githubusercontent.com/datageneration/datavisualization/master/data/hpi2016.csv")
+
+# Define UI for dataset viewer app ----
+ui <- fluidPage(
+
+  # Custom CSS for font, headers, inputs, and background
+  tags$style(HTML("
+    body, label, .shiny-input-container, h1, h2, h3, h4, h5, h6 {
+      font-family: 'Times New Roman', serif;  
+      color: blue;
+    }
+    body {
+      background-color: white;
+    }
+    .shiny-input-container input, .shiny-input-container select {
+      color: black;
+    }
+  ")),
+  
+  # App title ----
+  titlePanel("Reactivity"),
+  
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+    
+    # Sidebar panel for inputs ----
+    sidebarPanel(
+      
+      # Input: Text for providing a caption ----
+      # Note: Changes made to the caption in the textInput control
+      # are updated in the output area immediately as you type
+      textInput(inputId = "caption",
+                label = "Caption:",
+                value = "Data Summary"),
+      
+      # Input: Selector for choosing dataset ----
+      selectInput(inputId = "dataset",
+                  label = "Choose a dataset:",
+                  choices = c("Hong Kong Identity", "HPI 2016","CO2 emissions")),
+    
+      # Input: Numeric entry for number of obs to view ----
+      numericInput(inputId = "obs",
+                   label = "Number of observations to view:",
+                   min=0,
+                   value = 10)
+      
+    ),
+    
+    # Main panel for displaying outputs ----
+    mainPanel(
+      
+      # Output: Formatted text for caption ----
+      h3(textOutput("caption", container = span)),
+      
+      # Output: Verbatim text for data summary ----
+      verbatimTextOutput("summary"),
+      
+      # Output: HTML table with requested number of observations ----
+      tableOutput("view")
+      
+    )
+  )
+)
+
+# Define server logic to summarize and view selected dataset ----
+server <- function(input, output) {
+  
+  # Return the requested dataset ----
+  # By declaring datasetInput as a reactive expression we ensure
+  # that:
+  #
+  # 1. It is only called when the inputs it depends on changes
+  # 2. The computation and result are shared by all the callers,
+  #    i.e. it only executes a single time
+  datasetInput <- reactive({
+    switch(input$dataset,
+           "Hong Kong Identity" =hkid,
+           "HPI 2016"=hpi2016,
+           "CO2 emissions"=CO2)
+      })
+  
+  # Create caption ----
+  # The output$caption is computed based on a reactive expression
+  # that returns input$caption. When the user changes the
+  # "caption" field:
+  #
+  # 1. This function is automatically called to recompute the output
+  # 2. New caption is pushed back to the browser for re-display
+  #
+  # Note that because the data-oriented reactive expressions
+  # below don't depend on input$caption, those expressions are
+  # NOT called when input$caption changes
+  output$caption <- renderText({
+    input$caption
+  })
+  
+  # Generate a summary of the dataset ----
+  # The output$summary depends on the datasetInput reactive
+  # expression, so will be re-executed whenever datasetInput is
+  # invalidated, i.e. whenever the input$dataset changes
+  output$summary <- renderPrint({
+    dataset <- datasetInput()
+    summary(dataset)
+  })
+  
+  # Show the first "n" observations ----
+  # The output$view depends on both the databaseInput reactive
+  # expression and input$obs, so it will be re-executed whenever
+  # input$dataset or input$obs is changed
+  output$view <- renderTable({
+    head(datasetInput(), n = input$obs)
+  })
+  
+
+}
+
+
+```
+
+
+## sample Shiny program #3
+```{r 3, warning=FALSE, message=FALSE}
+
+library(shiny)
+library(datasets)
+
+# mtcars dataset: 
+# mpg	Miles/(US) gallon
+# cyl	Number of cylinders
+# disp	Displacement (cu.in.)
+# hp	Gross horsepower
+# drat	Rear axle ratio
+# wt	Weight (1000 lbs)
+# qsec	1/4 mile time
+# vs	V/S
+# am	Transmission (0 = automatic, 1 = manual)
+# gear	Number of forward gears
+# carb	Number of carburetors
+
+
+
+mpgData <- mtcars
+# Data pre-processing ----
+# Tweak the "am" variable to have nicer factor labels
+mpgData$am <- factor(mpgData$am, labels = c("Automatic", "Manual"))
+
+
+# Define UI for miles per gallon app ----
+ui <- fluidPage(
+
+  
+  # Custom CSS for font and colors
+  tags$style(HTML("
+    body, label, .shiny-input-container, h1, h2, h3, h4, h5, h6 {
+      font-family: 'Times New Roman', serif; 
+      color: blue;
+    }
+    body {
+      background-color: white;
+    }
+    .shiny-input-container select, .shiny-input-container input {
+      color: black;
+    }
+  ")),
+  
+  # App title ----
+  titlePanel("Horsepower"),
+  
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+    
+    # Sidebar panel for inputs ----
+    sidebarPanel(
+      
+      # Input: Selector for variable to plot against mpg ----
+      selectInput("variable", "Variable:",
+                  c("Cylinders" = "cyl",
+                    "Transmission" = "am",
+                    "Gears" = "gear")),
+      
+      # Input: Checkbox for whether outliers should be included ----
+      checkboxInput("outliers", "Show outliers", TRUE)
+      
+    ),
+    
+    # Main panel for displaying outputs ----
+    mainPanel(
+      
+      # Output: Formatted text for caption ----
+      h3(textOutput("caption")),
+      
+      # Output: Plot of the requested variable against mpg ----
+      plotOutput("hpPlot")
+      
+    )
+  )
+)
+
+# Define server logic to plot various variables against hp ----
+server <- function(input, output) {
+  
+  # Compute the formula text ----
+  # This is in a reactive expression since it is shared by the
+  # output$caption and output$hpPlot functions
+  formulaText <- reactive({
+    paste("hp ~", input$variable)
+  })
+  
+  # Return the formula text for printing as a caption ----
+  output$caption <- renderText({
+    formulaText()
+  })
+  
+  # Generate a plot of the requested variable against hp ----
+  # and only exclude outliers if requested
+  output$hpPlot <- renderPlot({
+    boxplot(as.formula(formulaText()),
+            data = mpgData,
+            outline = input$outliers,
+            col = "#75A", pch = 19)
+  })
+  
+}
+
+
+```
+# Build a Shiny app using the following datasets (in datasets library): 
+i. mtcars 
+ii. USArrests 
+iii.uspop
+
+```{r 4, warning=FALSE, message=FALSE}
+library(shiny)
+library(datasets)
+
+# Load datasets
+data("mtcars")
+data("USArrests")
+data("uspop")  # Note: uspop is a time series
+
+# Convert uspop to a data frame for display
+uspop_df <- data.frame(Year = time(uspop), Population = as.numeric(uspop))
+
+# Identify numeric columns for plotting
+get_numeric_cols <- function(df) {
+  nums <- sapply(df, is.numeric)
+  names(df)[nums]
+}
+
+# Define UI
+ui <- fluidPage(
+  
+  # Custom CSS for font and styling
+  tags$style(HTML("
+    body, label, .shiny-input-container, h1, h2, h3, h4, h5, h6 {
+      font-family: 'Times New Roman', serif;
+      color: black;
+    }
+    body {
+      background-color: white;
+    }
+    .shiny-input-container input, .shiny-input-container select {
+      color: black;
+    }
+  ")),
+  
+  titlePanel("Dataset Explorer"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("dataset", "Choose a dataset:",
+                  choices = c("mtcars", "USArrests", "uspop")),
+      
+      numericInput("obs", "Number of observations to view:", min = 1, value = 10),
+      
+      uiOutput("selectColumn"),  # dynamically generated for numeric columns
+    ),
+    
+    mainPanel(
+      h3(textOutput("caption")),
+      verbatimTextOutput("summary"),
+      tableOutput("view"),
+      plotOutput("plot")
+    )
+  )
+)
+
+# Define server
+server <- function(input, output, session) {
+  
+  # Reactive dataset based on user choice
+  datasetInput <- reactive({
+    switch(input$dataset,
+           "mtcars" = mtcars,
+           "USArrests" = USArrests,
+           "uspop" = uspop_df)
+  })
+  
+  # Reactive numeric columns for plotting
+  output$selectColumn <- renderUI({
+    df <- datasetInput()
+    nums <- get_numeric_cols(df)
+    if(length(nums) > 0) {
+      selectInput("column", "Choose numeric column to plot:", choices = nums)
+    }
+  })
+  
+  # Caption
+  output$caption <- renderText({
+    paste("Summary of", input$dataset)
+  })
+  
+  # Summary
+  output$summary <- renderPrint({
+    dataset <- datasetInput()
+    summary(dataset)
+  })
+  
+  # Table
+  output$view <- renderTable({
+    head(datasetInput(), n = input$obs)
+  })
+  
+  # Plot
+  output$plot <- renderPlot({
+    df <- datasetInput()
+    if(!is.null(input$column)) {
+      x <- df[[input$column]]
+      if(length(x) > 0) {
+        hist(x, main = paste(input$column, "in", input$dataset),
+             xlab = input$column,
+             col = "#75AADB", border = "white")
+      }
+    }
+  })
+}
+
+
+```
+# Macrodataset
+```{r macro, warning=FALSE, message=FALSE}
+library(shiny)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+
+# ---------------------------
+# Load Excel file on startup (optional)
+# ---------------------------
+if (file.exists("data/JSTdatasetR7.xlsx")) {
+  jst_data <- read_excel("data/JSTdatasetR7.xlsx")
+} else {
+  jst_data <- NULL
+}
+
+# ---------------------------
+# Helper: detect time column
+# ---------------------------
+detect_time_col <- function(df) {
+  if (is.null(df) || ncol(df) == 0) return(NULL)
+  nm <- names(df)
+  
+  # look for obvious time column names
+  candidate <- grep("^(year$|date$|time$|yr$)", nm, ignore.case = TRUE, value = TRUE)
+  if (length(candidate) > 0) return(candidate[1])
+  
+  # numeric columns that look like years
+  numeric_cols <- nm[sapply(df, is.numeric)]
+  for (c in numeric_cols) {
+    vals <- df[[c]]
+    vals <- vals[is.finite(vals)]
+    if (length(vals) == 0) next
+    if (all(vals >= 1800 & vals <= 2100 & abs(vals - round(vals)) < 1e-8)) return(c)
+  }
+  
+  # try date parsing on character columns
+  char_cols <- nm[sapply(df, is.character)]
+  for (c in char_cols) {
+    parsed <- suppressWarnings(parse_date_time(df[[c]], orders = c("Ymd","Y-m-d","dmy","mdy","ym","y")))
+    if (sum(!is.na(parsed)) / nrow(df) > 0.5) return(c)
+  }
+  
+  return(NULL)
+}
+
+# ---------------------------
+# UI
+# ---------------------------
+ui <- fluidPage(
+  titlePanel("JST Time-Series Dashboard"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      p("Upload JST Excel file or use default file in `data/` folder if available."),
+      fileInput("file", "Upload Excel (.xlsx/.xls)", accept = c(".xlsx", ".xls")),
+      br(),
+      uiOutput("timeColUI"),       # time column selector
+      uiOutput("varSelectUI"),     # numeric variables selector
+      uiOutput("rangeUI"),         # date range input
+      width = 3
+    ),
+    
+    mainPanel(
+      h4(textOutput("dataInfo")),
+      plotOutput("tsPlot", height = "500px"),
+      br(),
+      tableOutput("headTable")
+    )
+  )
+)
+
+# ---------------------------
+# Server
+# ---------------------------
+server <- function(input, output, session) {
+  
+  # Reactive: load data
+  data_raw <- reactive({
+    if (!is.null(input$file)) {
+      read_excel(input$file$datapath)
+    } else if (!is.null(jst_data)) {
+      jst_data
+    } else {
+      NULL
+    }
+  })
+  
+  # Detected time column
+  detected_time <- reactive({
+    df <- data_raw()
+    detect_time_col(df)
+  })
+  
+  # UI: time column selector
+  output$timeColUI <- renderUI({
+    df <- data_raw()
+    if (is.null(df)) return(tags$div("No dataset loaded yet."))
+    selectInput("timeCol", "Time / Year column:",
+                choices = names(df), selected = detected_time())
+  })
+  
+  # UI: numeric variables to plot
+  output$varSelectUI <- renderUI({
+    df <- data_raw()
+    req(df)
+    time_col <- input$timeCol %||% detected_time()
+    numeric_cols <- setdiff(names(df)[sapply(df, is.numeric)], time_col)
+    if (length(numeric_cols) == 0) return(tags$div("No numeric variables found."))
+    selectInput("vars", "Variables to plot (ctrl/cmd for multiple):",
+                choices = numeric_cols, selected = numeric_cols[1], multiple = TRUE)
+  })
+  
+  # Reactive: processed data with Date/Time column
+  data_proc <- reactive({
+    df <- data_raw()
+    req(df)
+    time_col <- input$timeCol %||% detected_time()
+    req(time_col)
+    
+    d <- as.data.frame(df)
+    
+    # convert time_col to Date
+    if (is.numeric(d[[time_col]]) && all(is.na(d[[time_col]]) | (d[[time_col]] >= 1800 & d[[time_col]] <= 2100))) {
+      d$.time <- as.Date(paste0(as.integer(d[[time_col]]), "-01-01"))
+    } else {
+      parsed <- suppressWarnings(parse_date_time(d[[time_col]], orders = c("Ymd","Y-m-d","dmy","mdy","ym","y")))
+      if (sum(!is.na(parsed)) / nrow(d) > 0.3) {
+        d$.time <- as.Date(parsed)
+      } else {
+        yrs <- suppressWarnings(as.numeric(str_extract(as.character(d[[time_col]]), "\\d{4}")))
+        if (sum(!is.na(yrs)) / nrow(d) > 0.3) {
+          d$.time <- as.Date(paste0(as.integer(yrs), "-01-01"))
+        } else {
+          d$.time <- as.Date(NA)
+        }
+      }
+    }
+    d
+  })
+  
+  # UI: date range selector
+  output$rangeUI <- renderUI({
+    d <- data_proc()
+    req(d)
+    if (all(is.na(d$.time))) return(NULL)
+    dateRangeInput("daterange", "Date range:", 
+                   start = min(d$.time, na.rm = TRUE), 
+                   end = max(d$.time, na.rm = TRUE),
+                   min = min(d$.time, na.rm = TRUE), 
+                   max = max(d$.time, na.rm = TRUE))
+  })
+  
+  # Info text
+  output$dataInfo <- renderText({
+    df <- data_raw()
+    if (is.null(df)) return("No data loaded.")
+    paste0("Loaded data: ", nrow(df), " rows × ", ncol(df), " columns. Time column: ",
+           input$timeCol %||% detected_time() %||% "none")
+  })
+  
+  # Head table
+  output$headTable <- renderTable({
+    head(data_raw(), 10)
+  })
+  
+  # Plot
+  output$tsPlot <- renderPlot({
+    df <- data_proc()
+    req(df)
+    vars <- input$vars
+    req(vars)
+    
+    if (all(is.na(df$.time))) {
+      df$.time <- seq_len(nrow(df))
+      xlab <- "Index"
+    } else {
+      xlab <- "Time"
+    }
+    
+    # filter by date range
+    if (!is.null(input$daterange) && !all(is.na(df$.time))) {
+      start <- input$daterange[1]; end <- input$daterange[2]
+      df <- df[df$.time >= start & df$.time <= end, , drop = FALSE]
+    }
+    
+    plot_df <- df %>%
+      select(.time, all_of(vars)) %>%
+      pivot_longer(cols = - .time, names_to = "variable", values_to = "value") %>%
+      filter(!is.na(value))
+    
+    ggplot(plot_df, aes(x = .time, y = value, color = variable)) +
+      geom_line(size = 1) +
+      geom_point(size = 1.5) +
+      theme_minimal(base_family = "Times") +
+      labs(x = xlab, y = "Value", color = "Variable",
+           title = "Time Series Plot") +
+      theme(text = element_text(size = 12))
+  }, res = 96)
+  
+}
+
+```
+
+
